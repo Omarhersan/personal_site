@@ -1,8 +1,21 @@
-import React from 'react';
+"use client"; // Add this directive for client-side hooks
+
+import React, { useEffect, useState } from 'react';
+import { SKILL_CATEGORIES, SkillCategory } from '@/models/Skill'; // Import categories and type
+
+// Define an interface for the skill object fetched from the API
+interface ApiSkill {
+  _id: string; // Assuming MongoDB ObjectId as _id
+  name: string;
+  proficiency: string;
+  category: SkillCategory; // Added category
+  createdAt?: string; // Optional: if you want to use timestamps
+  updatedAt?: string; // Optional: if you want to use timestamps
+}
 
 interface SkillCardProps {
   title: string;
-  skills: string[];
+  skills: ApiSkill[]; // Updated to use ApiSkill interface
   icon?: React.ReactNode; // Optional: for a category icon
 }
 
@@ -14,49 +27,80 @@ const SkillCard: React.FC<SkillCardProps> = ({ title, skills, icon }) => {
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
       </div>
       <ul className="space-y-2">
-        {skills.map((skill, index) => (
-          <li key={index} className="text-gray-700 dark:text-gray-300">
-            {skill}
-          </li>
-        ))}
+        {skills.length > 0 ? (
+          skills.map((skill) => (
+            <li key={skill._id} className="text-gray-700 dark:text-gray-300">
+              {skill.name} <span className="text-sm text-gray-500 dark:text-gray-400">({skill.proficiency})</span>
+            </li>
+          ))
+        ) : (
+          <li className="text-gray-500 dark:text-gray-400">No skills listed for this category.</li>
+        )}
       </ul>
     </div>
   );
 };
 
 const SkillsShowcase: React.FC = () => {
-  const dataScienceSkills = [
-    'Python (Pandas, NumPy, Matplotlib)',
-    'SQL & NoSQL Databases',
-    'Statistical Analysis & Modeling',
-    'Data Visualization (Tableau, Seaborn)',
-    'ETL Processes',
-  ];
+  const [allSkills, setAllSkills] = useState<ApiSkill[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const mlSkills = [
-    'Scikit-learn',
-    'TensorFlow & Keras',
-    'PyTorch',
-    'Natural Language Processing (NLP)',
-    'Computer Vision Basics',
-    'Recommender Systems',
-  ];
+  useEffect(() => {
+    const fetchSkills = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/skills');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch skills: ${response.statusText} (status: ${response.status})`);
+        }
+        const data: ApiSkill[] = await response.json();
+        setAllSkills(data);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred while fetching skills.');
+        }
+        console.error("Error fetching skills:", err);
+      }
+      setIsLoading(false);
+    };
 
-  const webDevSkills = [
-    'HTML, CSS, JavaScript (ES6+)',
-    'TypeScript',
-    'React & Next.js',
-    'Node.js & Express.js',
-    'RESTful APIs & GraphQL',
-    'Version Control (Git & GitHub)',
-    'Responsive Design',
-  ];
+    fetchSkills();
+  }, []);
+
+  // Helper function to filter skills by category
+  const getSkillsByCategory = (category: SkillCategory): ApiSkill[] => {
+    return allSkills.filter(skill => skill.category === category);
+  };
 
   // Placeholder icons (you can replace these with actual SVG icons or a library like react-icons)
   const DataIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h.01M12 7h.01M16 7h.01M21 12c0 4.418-4.03 8-9 8S3 16.418 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
   const MlIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
   const WebIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>;
+  const OtherIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 16v-2m8-6h2M4 12H2m15.364 6.364l-1.414-1.414M6.05 6.05l-1.414-1.414m12.728 0l-1.414 1.414M6.05 17.95l-1.414 1.414" /></svg>; // Example for 'Other'
 
+  if (isLoading) {
+    return (
+      <section className="py-16 md:py-24 bg-gray-50 dark:bg-gray-900">
+        <div className="container mx-auto px-4 md:px-6 text-center">
+          <p className="text-gray-700 dark:text-gray-300">Loading skills...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16 md:py-24 bg-gray-50 dark:bg-gray-900">
+        <div className="container mx-auto px-4 md:px-6 text-center">
+          <p className="text-red-500 dark:text-red-400">Error: {error}</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 md:py-24 bg-gray-50 dark:bg-gray-900">
@@ -65,9 +109,13 @@ const SkillsShowcase: React.FC = () => {
           My Technical Skills
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <SkillCard title="Data Science" skills={dataScienceSkills} icon={<DataIcon />} />
-          <SkillCard title="Machine Learning" skills={mlSkills} icon={<MlIcon />} />
-          <SkillCard title="Web Development" skills={webDevSkills} icon={<WebIcon />} />
+          {/* Dynamically create cards based on SKILL_CATEGORIES or a predefined list of categories you want to show */}
+          <SkillCard title="Web Development" skills={getSkillsByCategory('Web Development')} icon={<WebIcon />} />
+          <SkillCard title="Data Science" skills={getSkillsByCategory('Data Science')} icon={<DataIcon />} />
+          <SkillCard title="Machine Learning" skills={getSkillsByCategory('Machine Learning')} icon={<MlIcon />} />
+          {/* Add more cards for other categories as needed, e.g., DevOps, Soft Skills */}
+          {/* Example for an 'Other' category card */}
+          {/* <SkillCard title="Other Skills" skills={getSkillsByCategory('Other')} icon={<OtherIcon />} /> */}
         </div>
       </div>
     </section>
