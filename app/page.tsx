@@ -12,7 +12,6 @@ import ContactCTA from './components/contact/ContactCTA';
 export default function Home() {
   return (
     <>
-      <Navbar />
       <main>
         <HeroSection />
         <AboutSnippet />

@@ -14,6 +14,9 @@ const Navbar = () => {
           <Link href="/projects" className="px-3 hover:text-gray-300">
             Projects
           </Link>
+          <Link href="/blog" className="px-3 hover:text-gray-300"> {/* Added Blog link */}
+            Blog
+          </Link>
           <Link href="/contact" className="px-3 hover:text-gray-300">
             Contact
           </Link>
