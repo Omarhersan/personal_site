@@ -1,47 +1,59 @@
 import React from 'react';
-import ProjectCard from '../components/projects/ProjectCard';
+import ProjectCard, { Project } from '../components/projects/ProjectCard'; // Project type is now from ProjectCard.tsx
 
-// Sample project data - you'll likely want to move this to a separate file or fetch it from an API
-const projects = [
-	{
-		id: 'alpha-001', // Added id
-		title: 'Project Alpha',
-		description:
-			'A brief description of Project Alpha. This project was about X and achieved Y.',
-		imageUrl: '/project-alpha.jpg', // Replace with actual image path or URL
-		projectUrl: 'https://example.com/project-alpha',
-		technologies: ['React', 'Node.js', 'MongoDB'], // Changed from tags
-	},
-	{
-		id: 'beta-002', // Added id
-		title: 'Project Beta',
-		description:
-			'An overview of Project Beta. Focused on Z and delivered W.',
-		imageUrl: '/project-beta.jpg', // Replace with actual image path or URL
-		projectUrl: 'https://example.com/project-beta',
-		technologies: ['Python', 'Django', 'PostgreSQL'], // Changed from tags
-	},
-	{
-		id: 'gamma-003', // Added id
-		title: 'Project Gamma',
-		description:
-			'Details about Project Gamma. It explored A and resulted in B.',
-		imageUrl: '/project-gamma.jpg', // Replace with actual image path or URL
-		projectUrl: 'https://example.com/project-gamma',
-		technologies: ['Next.js', 'Tailwind CSS', 'Supabase'], // Changed from tags
-	},
-	// Add more projects as needed
-];
+// Function to fetch projects from the API
+async function getProjects(): Promise<Project[]> {
+	const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''; // Re-added apiUrl
+	const res = await fetch(`${apiUrl}/api/projects`, {
+		next: { revalidate: 60 }, // Changed from cache: 'no-store'
+	});
+	if (!res.ok) {
+		throw new Error('Failed to fetch projects');
+	}
+	// The API returns an array of objects that should match the frontend Project interface
+	const projectsData = await res.json();
+	return projectsData.map((project: any) => ({
+		// Use any for initial mapping, then rely on Project type
+		...project,
+		_id: project._id.toString(), // Ensure _id is a string
+		// Ensure all fields expected by the frontend Project type are present or handled
+		// For example, if dates are returned from backend, they might need formatting
+		startDate: project.startDate ? new Date(project.startDate).toLocaleDateString() : undefined,
+		endDate: project.endDate ? new Date(project.endDate).toLocaleDateString() : undefined,
+	}));
+}
 
-const ProjectsPage = () => {
+const ProjectsPage = async () => {
+	let projects: Project[] = [];
+	let error: string | null = null;
+
+	try {
+		projects = await getProjects();
+	} catch (e) {
+		// @ts-ignore
+		error = e.message || 'An error occurred while fetching projects.';
+		console.error(e);
+	}
+
 	return (
 		<div className="container mx-auto px-4 py-8">
 			<h1 className="text-4xl font-bold mb-8 text-center">My Projects</h1>
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-				{projects.map((project, index) => (
-					<ProjectCard key={index} project={project} /> // Pass the whole project object
-				))}
-			</div>
+			{error && (
+				<p className="text-center text-red-500 bg-red-100 p-4 rounded-md">Error: {error}</p>
+			)}
+			{!error && projects.length > 0 ? (
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+					{projects.map((project) => (
+						<ProjectCard key={project._id} project={project} />
+					))}
+				</div>
+			) : (
+				!error && (
+					<p className="text-center text-gray-700 dark:text-gray-300">
+						No projects to display at the moment. Check back soon!
+					</p>
+				)
+			)}
 		</div>
 	);
 };

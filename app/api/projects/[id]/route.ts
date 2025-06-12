@@ -1,48 +1,49 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import Project from '@/models/Project'; // Adjusted import
+import mongoose from 'mongoose';
+import { withDb } from '@/lib/apiHelpers';
 
-// Dummy data store - replace with your actual database or data source
-let projects = [
-  { id: '1', name: 'Project Alpha', description: 'Description for Alpha' },
-  { id: '2', name: 'Project Beta', description: 'Description for Beta' },
-];
-
-// Helper function to find a project by ID
-const findProject = (id: string) => projects.find(p => p.id === id);
-
-// GET /api/projects/[id] - Fetches a single project by ID
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const project = findProject(params.id);
+// GET a single project by ID
+export const GET = withDb(async (request: NextRequest, { params }: { params: { id: string } }) => {
+  const { id } = params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ message: 'Invalid project ID' }, { status: 400 });
+  }
+  const project = await Project.findById(id); // Adjusted to use Project model
   if (!project) {
     return NextResponse.json({ message: 'Project not found' }, { status: 404 });
   }
   return NextResponse.json(project);
-}
+});
 
-// PUT /api/projects/[id] - Updates a project by ID
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const projectIndex = projects.findIndex(p => p.id === params.id);
-  if (projectIndex === -1) {
+// PUT (update) a project by ID
+export const PUT = withDb(async (request: NextRequest, { params }: { params: { id: string } }) => {
+  const { id } = params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ message: 'Invalid project ID' }, { status: 400 });
+  }
+  const updatedData = await request.json();
+
+  // Add any specific validation for project fields if necessary
+  // For example, checking if certain fields are not empty strings if provided
+  // Mongoose schema validation (runValidators: true) will handle enum checks and required fields.
+
+  const project = await Project.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true }); // Adjusted
+  if (!project) {
     return NextResponse.json({ message: 'Project not found' }, { status: 404 });
   }
-  try {
-    const updatedData = await request.json();
-    // Basic validation
-    if (!updatedData.name || !updatedData.description) {
-      return NextResponse.json({ message: 'Missing name or description' }, { status: 400 });
-    }
-    projects[projectIndex] = { ...projects[projectIndex], ...updatedData };
-    return NextResponse.json(projects[projectIndex]);
-  } catch (error) {
-    return NextResponse.json({ message: 'Error updating project', error }, { status: 500 });
-  }
-}
+  return NextResponse.json(project);
+});
 
-// DELETE /api/projects/[id] - Deletes a project by ID
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const projectIndex = projects.findIndex(p => p.id === params.id);
-  if (projectIndex === -1) {
+// DELETE a project by ID
+export const DELETE = withDb(async (request: NextRequest, { params }: { params: { id: string } }) => {
+  const { id } = params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ message: 'Invalid project ID' }, { status: 400 });
+  }
+  const deletedProject = await Project.findByIdAndDelete(id); // Adjusted to use Project model
+  if (!deletedProject) {
     return NextResponse.json({ message: 'Project not found' }, { status: 404 });
   }
-  const deletedProject = projects.splice(projectIndex, 1);
-  return NextResponse.json({ message: 'Project deleted', project: deletedProject[0] });
-}
+  return NextResponse.json({ message: 'Project deleted', project: deletedProject });
+});

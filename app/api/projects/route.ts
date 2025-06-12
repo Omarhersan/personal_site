@@ -1,28 +1,48 @@
 import { NextResponse } from 'next/server';
-
-// Dummy data store - replace with your actual database or data source
-let projects = [
-  { id: '1', name: 'Project Alpha', description: 'Description for Alpha' },
-  { id: '2', name: 'Project Beta', description: 'Description for Beta' },
-];
+import dbConnect from '@/lib/mongodb';
+import Project from '@/models/Project'; // Adjusted import
 
 // GET /api/projects - Fetches all projects
 export async function GET(request: Request) {
-  return NextResponse.json(projects);
+  try {
+    await dbConnect();
+    const projects = await Project.find({});
+    return NextResponse.json(projects);
+  } catch (error) {
+    console.error('Error fetching projects:', error); // Server-side log
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ message: 'Error fetching projects from API', error: errorMessage }, { status: 500 });
+  }
 }
 
 // POST /api/projects - Creates a new project
 export async function POST(request: Request) {
   try {
-    const newProject = await request.json();
-    // Basic validation
-    if (!newProject.name || !newProject.description) {
-      return NextResponse.json({ message: 'Missing name or description' }, { status: 400 });
+    await dbConnect();
+    const newProjectData = await request.json();
+    console.log("Received project data for POST:", newProjectData); 
+
+    // Basic validation - adapt fields as per your IProject interface
+    if (!newProjectData.name || !newProjectData.description || !newProjectData.category || !newProjectData.status) {
+      console.log("Validation failed: Missing required fields");
+      return NextResponse.json({ message: 'Missing required project fields (name, description, category, status)' }, { status: 400 });
     }
-    const project = { id: String(projects.length + 1), ...newProject };
-    projects.push(project);
-    return NextResponse.json(project, { status: 201 });
+
+    const project = new Project(newProjectData);
+    console.log("Project object before save:", project); 
+    
+    const savedProject = await project.save(); 
+    console.log("Project object after save:", savedProject); 
+    
+    return NextResponse.json(savedProject, { status: 201 }); 
   } catch (error) {
-    return NextResponse.json({ message: 'Error creating project', error }, { status: 500 });
+    console.error('Error creating project:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    // @ts-ignore
+    if (error.code === 11000) { 
+       // @ts-ignore
+      return NextResponse.json({ message: `Project with name '${error.keyValue?.name}' already exists.`, error: errorMessage }, { status: 409 });
+    }
+    return NextResponse.json({ message: 'Error creating project in API', error: errorMessage }, { status: 500 });
   }
 }
