@@ -10,6 +10,7 @@ export interface IBlog extends Document {
   author?: string; // Optional author name
   tags?: BlogTag[];
   imageUrl?: string; // Optional cover image for the blog post
+  slug: string; // <<< ADD THIS LINE
   isPublished: boolean; // To control visibility
   publishedAt?: Date; // Date when the blog was published
 }
@@ -18,6 +19,12 @@ const BlogSchema: Schema = new Schema({
   title: {
     type: String,
     required: [true, 'Blog title is required.'],
+    trim: true,
+  },
+  slug: { // <<< ADD THIS BLOCK
+    type: String,
+    required: [true, 'Slug is required.'],
+    unique: true,
     trim: true,
   },
   content: {

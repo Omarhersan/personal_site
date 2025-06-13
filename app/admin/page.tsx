@@ -157,26 +157,70 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const handleBlogPostSubmit = async (blogPost: BlogPost) => {
+  // BlogPost has imageUrl?: string;
+  // The form will now also pass an optional imageFile: File
+  const handleBlogPostSubmit = async (blogPostData: BlogPost, imageFile?: File | null) => {
     setLoading(true);
     setError(null);
-    const method = blogPost._id ? 'PUT' : 'POST';
-    const url = blogPost._id ? `/api/blogs/${blogPost._id}` : '/api/blogs';
+    let finalImageUrl = blogPostData.imageUrl; // Use existing or manually entered URL by default
+
     try {
+      // 1. If a new image file is provided, upload it first
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json();
+          throw new Error(errorData.error || 'Image upload failed');
+        }
+        const uploadResult = await uploadRes.json();
+        if (uploadResult.success && uploadResult.url) {
+          // Construct absolute URL
+          if (typeof window !== 'undefined') { // Ensure window is available (client-side)
+            finalImageUrl = new URL(uploadResult.url, window.location.origin).toString();
+          } else {
+            // Fallback or error if window is not defined (should not happen in this context)
+            finalImageUrl = uploadResult.url; // Or handle as an error
+            console.warn('window.location.origin is not available, using relative path for image.');
+          }
+        } else {
+          throw new Error('Image upload succeeded but no URL was returned.');
+        }
+      }
+
+      // 2. Prepare blog post data with the final image URL
+      const postToSubmit: BlogPost = {
+        ...blogPostData,
+        imageUrl: finalImageUrl,
+      };
+
+      // 3. Create or Update the blog post
+      const method = postToSubmit._id ? 'PUT' : 'POST';
+      const url = postToSubmit._id ? `/api/blogs/${postToSubmit._id}` : '/api/blogs';
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(blogPost),
+        body: JSON.stringify(postToSubmit),
       });
+
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || `Failed to ${blogPost._id ? 'update' : 'create'} blog post`);
+        throw new Error(errorData.message || `Failed to ${postToSubmit._id ? 'update' : 'create'} blog post`);
       }
-      await fetchBlogPosts();
+
+      await fetchBlogPosts(); // Refresh the list
       setShowBlogPostForm(false);
       setEditingBlogPost(undefined);
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred during blog post submission');
     } finally {
       setLoading(false);
     }
