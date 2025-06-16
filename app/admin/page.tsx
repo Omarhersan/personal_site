@@ -14,6 +14,7 @@ interface Project {
   liveUrl?: string;
   githubUrl?: string;
   tags?: string[];
+  isPublished?: boolean;
 }
 
 interface Skill {
@@ -321,6 +322,29 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleTogglePublishProject = async (project: Project) => {
+    if (!project._id) return;
+    setLoading(true);
+    setError(null);
+    const newPublishStatus = !project.isPublished;
+    try {
+      const res = await fetch(`/api/projects/${project._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: newPublishStatus }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update publish status');
+      }
+      await fetchProjects();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -356,8 +380,17 @@ const AdminPage: React.FC = () => {
                 <div>
                   <p className="font-semibold text-gray-800 dark:text-white">{p.name}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-300">{p.description.substring(0,100)}{p.description.length > 100 ? '...' : ''}</p>
+                  <p className={`text-sm font-medium ${p.isPublished ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                    Status: {p.isPublished ? 'Published' : 'Draft'}
+                  </p>
                 </div>
                 <div className="space-x-2">
+                  <button 
+                    onClick={() => p._id && handleTogglePublishProject(p)} 
+                    className={`text-sm px-3 py-1 rounded-md ${p.isPublished ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                  >
+                    {p.isPublished ? 'Unpublish' : 'Publish'}
+                  </button>
                   <button onClick={() => handleEditProject(p)} className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">Edit</button>
                   <button onClick={() => p._id && handleDeleteProject(p._id)} className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">Delete</button>
                 </div>

@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 async function getLatestBlogPosts() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   try {
-    const res = await fetch(`${apiUrl}/api/blogs?limit=3`, {
+    const res = await fetch(`${apiUrl}/api/blogs?status=published&limit=3`, {
       next: { revalidate: 60 }, // Changed from cache: 'no-store'
     });
 

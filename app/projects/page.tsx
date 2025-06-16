@@ -4,7 +4,7 @@ import ProjectCard, { Project } from '../components/projects/ProjectCard'; // Pr
 // Function to fetch projects from the API
 async function getProjects(): Promise<Project[]> {
 	const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''; // Re-added apiUrl
-	const res = await fetch(`${apiUrl}/api/projects`, {
+	const res = await fetch(`${apiUrl}/api/projects?status=published`, {
 		next: { revalidate: 60 }, // Changed from cache: 'no-store'
 	});
 	if (!res.ok) {
@@ -16,6 +16,7 @@ async function getProjects(): Promise<Project[]> {
 		// Use any for initial mapping, then rely on Project type
 		...project,
 		_id: project._id.toString(), // Ensure _id is a string
+    isPublished: project.isPublished, // Ensure isPublished is mapped
 		// Ensure all fields expected by the frontend Project type are present or handled
 		// For example, if dates are returned from backend, they might need formatting
 		startDate: project.startDate ? new Date(project.startDate).toLocaleDateString() : undefined,

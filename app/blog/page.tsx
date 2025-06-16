@@ -6,7 +6,7 @@ async function getAllBlogPosts() {
   try {
     // Fetch all published blog posts, sorted by publishedAt descending (newest first)
     // The API route.ts for blogs already sorts by publishedAt descending and filters by isPublished=true
-    const res = await fetch(`${apiUrl}/api/blogs`, {
+    const res = await fetch(`${apiUrl}/api/blogs?status=published`, {
       next: { revalidate: 3600 }, // Revalidate every hour
     });
 

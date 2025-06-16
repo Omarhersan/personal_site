@@ -8,7 +8,7 @@ async function getFeaturedProjects(): Promise<Project[]> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''; // Re-added apiUrl
   // Assuming your API can filter for featured projects, or you fetch all and filter here
   // For now, let's fetch all and slice. Adjust if you have a specific endpoint e.g. /api/projects?featured=true
-  const res = await fetch(`${apiUrl}/api/projects`, {
+  const res = await fetch(`${apiUrl}/api/projects?status=published`, {
     next: { revalidate: 60 }, // Changed from cache: 'no-store'
   }); // Use absolute path
   if (!res.ok) {
@@ -20,6 +20,7 @@ async function getFeaturedProjects(): Promise<Project[]> {
   const allProjects: Project[] = projectsData.map((project: any) => ({
     ...project,
     _id: project._id.toString(),
+    isPublished: project.isPublished, // Ensure isPublished is mapped
     startDate: project.startDate ? new Date(project.startDate).toLocaleDateString() : undefined,
     endDate: project.endDate ? new Date(project.endDate).toLocaleDateString() : undefined,
   }));

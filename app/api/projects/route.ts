@@ -6,7 +6,13 @@ import Project from '@/models/Project'; // Adjusted import
 export async function GET(request: Request) {
   try {
     await dbConnect();
-    const projects = await Project.find({});
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    let query = {};
+    if (status === 'published') {
+      query = { isPublished: true };
+    }
+    const projects = await Project.find(query);
     return NextResponse.json(projects);
   } catch (error) {
     console.error('Error fetching projects:', error); // Server-side log

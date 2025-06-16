@@ -4,14 +4,16 @@ import Blog from '@/models/Blog';
 
 // GET /api/blogs - Fetches blog posts
 // Query param ?status=published to fetch only published blogs, sorted by publishedAt
+// Query param ?limit=N to limit the number of results
 // Otherwise, fetches all blogs (for admin), sorted by updatedAt
 export async function GET(request: NextRequest) { // Changed to NextRequest
   try {
     await dbConnect();
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
+    const limitParam = url.searchParams.get('limit');
 
-    let query = {};
+    let query: any = {};
     let sortOrder: any = { updatedAt: -1 }; // Default sort for admin (all posts)
 
     if (status === 'published') {
@@ -19,11 +21,22 @@ export async function GET(request: NextRequest) { // Changed to NextRequest
       sortOrder = { publishedAt: -1 }; // Sort by publishedAt for public view
     }
 
-    const blogs = await Blog.find(query).sort(sortOrder);
+    let blogsQuery = Blog.find(query).sort(sortOrder);
+
+    if (limitParam) {
+      const limit = parseInt(limitParam, 10);
+      if (!isNaN(limit) && limit > 0) {
+        blogsQuery = blogsQuery.limit(limit);
+      }
+    }
+
+    const blogs = await blogsQuery;
     return NextResponse.json(blogs);
   } catch (error) {
     console.error('Error fetching blogs:', error);
-    return NextResponse.json({ message: 'Error fetching blogs', error }, { status: 500 });
+    // Ensure error is properly typed or handled if it's not a standard Error object
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ message: 'Error fetching blogs', error: errorMessage }, { status: 500 });
   }
 }
 

@@ -19,6 +19,7 @@ export interface IProject extends Document {
   imageUrl?: string; // Optional link to a project image/thumbnail
   startDate?: Date;
   endDate?: Date; // Can be undefined if the project is ongoing
+  isPublished: boolean; // To control visibility
 }
 
 const ProjectSchema: Schema = new Schema({
@@ -75,6 +76,10 @@ const ProjectSchema: Schema = new Schema({
   },
   endDate: {
     type: Date,
+  },
+  isPublished: {
+    type: Boolean,
+    default: false, // Draft by default
   },
   // You could add a field for related skills, e.g., by referencing Skill model IDs
   // relatedSkills: [{ type: Schema.Types.ObjectId, ref: 'Skill' }]
