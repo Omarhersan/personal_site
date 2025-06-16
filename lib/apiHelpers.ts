@@ -7,28 +7,47 @@ import dbConnect from './mongodb'; // Your existing MongoDB connection utility
  * It also includes basic error handling for the connection or handler execution.
  */
 
-// Define a generic type for App Router handlers
-// T is the type of the request object (NextRequest or a subtype)
-// K is the type of the context/params object (e.g., { params: { id: string } } or undefined)
-export type AppRouterHandler<T extends NextRequest, K> = 
-  (request: T, context: K) => Promise<NextResponse>;
+// P represents the actual parameters type, e.g., { id: string }
+// This type defines the structure of the second argument for Next.js 15 async route handlers.
+export type NextRouteContext<P extends Record<string, string | string[]> = any> = {
+  params: Promise<P>; // params is a Promise
+};
 
-export function withDb<T extends NextRequest, K>(
-  handler: AppRouterHandler<T, K>
-): AppRouterHandler<T, K> {
+// AppRouterHandler now uses NextRouteContext for its second parameter.
+// P_ContextParams is the type of the resolved params, e.g., { id: string }
+export type AppRouterHandler<
+  T extends NextRequest,
+  P_ContextParams extends Record<string, string | string[]>
+> = (
+  request: T,
+  context: NextRouteContext<P_ContextParams> // The context object itself, containing params as a Promise
+) => Promise<NextResponse>;
+
+export function withDb<
+  T extends NextRequest,
+  P_ContextParams extends Record<string, string | string[]>
+>(
+  handler: AppRouterHandler<T, P_ContextParams>
+): AppRouterHandler<T, P_ContextParams> {
   return async (request, context) => {
     try {
-      await dbConnect(); // Ensure DB connection is established and ready
-      return await handler(request, context); // Execute the original handler
+      await dbConnect();
+      return await handler(request, context);
     } catch (error) {
-      console.error("API Route Error (via withDb):\nRequest URL:", request.url, "\nContext:", context, "\nError:", error);
+      // Log context information carefully
+      console.error(
+        "API Route Error (via withDb):\nRequest URL:",
+        request.url,
+        "\nContext params type: Promise<params>", // Indicate params is a Promise
+        "\nError:",
+        error
+      );
 
-      // Return a generic error response
-      // Specific error handling should ideally be within the handler itself if more context is needed
       let errorMessage = "An unexpected error occurred.";
       if (error instanceof Error) {
         errorMessage = error.message;
       }
+      // Ensure a NextResponse is always returned
       return NextResponse.json({ message: "Server error", error: errorMessage }, { status: 500 });
     }
   };
