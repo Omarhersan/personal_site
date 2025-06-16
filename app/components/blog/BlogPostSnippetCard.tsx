@@ -49,12 +49,13 @@ const BlogPostSnippetCard: React.FC<BlogPostSnippetCardProps> = ({ post }) => {
   return (
     <article className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col">
       {post.imageUrl && ( // Display image if available
-        <div className="mb-4 relative h-40 w-full">
+        <div className="mb-4 relative h-40 w-full"> {/* Ensure parent has relative positioning and dimensions */}
           <Image 
             src={post.imageUrl} 
             alt={post.title} 
-            layout="fill" 
-            objectFit="cover" 
+            fill 
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" // <<< ADD THIS LINE
+            style={{ objectFit: "cover" }} // Replaces objectFit="cover"
             className="rounded-md"
           />
         </div>

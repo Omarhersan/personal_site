@@ -31,6 +31,7 @@ interface BlogPost {
   tags?: string[];
   imageUrl?: string;
   slug: string;
+  isPublished?: boolean; // <<< ADD THIS LINE
 }
 
 const AdminPage: React.FC = () => {
@@ -198,6 +199,7 @@ const AdminPage: React.FC = () => {
       const postToSubmit: BlogPost = {
         ...blogPostData,
         imageUrl: finalImageUrl,
+        // isPublished will be part of blogPostData if editing, or default to false if new (handled by model)
       };
 
       // 3. Create or Update the blog post
@@ -287,6 +289,30 @@ const AdminPage: React.FC = () => {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to delete blog post');
       }
+      await fetchBlogPosts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTogglePublish = async (blogPost: BlogPost) => {
+    if (!blogPost._id) return;
+    setLoading(true);
+    setError(null);
+    const newPublishStatus = !blogPost.isPublished;
+    try {
+      const res = await fetch(`/api/blogs/${blogPost._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: newPublishStatus }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update publish status');
+      }
+      // Refresh the blog posts to show the updated status
       await fetchBlogPosts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -406,8 +432,17 @@ const AdminPage: React.FC = () => {
                 <div>
                   <p className="font-semibold text-gray-800 dark:text-white">{b.title}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-300">Slug: {b.slug}</p>
+                  <p className={`text-sm font-medium ${b.isPublished ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                    Status: {b.isPublished ? 'Published' : 'Draft'}
+                  </p>
                 </div>
                 <div className="space-x-2">
+                  <button 
+                    onClick={() => b._id && handleTogglePublish(b)} 
+                    className={`text-sm px-3 py-1 rounded-md ${b.isPublished ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                  >
+                    {b.isPublished ? 'Unpublish' : 'Publish'}
+                  </button>
                   <button onClick={() => handleEditBlogPost(b)} className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">Edit</button>
                   <button onClick={() => b._id && handleDeleteBlogPost(b._id)} className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">Delete</button>
                 </div>

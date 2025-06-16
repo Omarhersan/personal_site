@@ -1,13 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // Changed import
 import dbConnect from '@/lib/mongodb';
-import Blog from '@/models/Blog'; // Reverted to alias import
+import Blog from '@/models/Blog';
 
-// GET /api/blogs - Fetches all blog posts
-export async function GET(request: Request) {
+// GET /api/blogs - Fetches blog posts
+// Query param ?status=published to fetch only published blogs, sorted by publishedAt
+// Otherwise, fetches all blogs (for admin), sorted by updatedAt
+export async function GET(request: NextRequest) { // Changed to NextRequest
   try {
     await dbConnect();
-    // Optionally, sort by publishedAt or createdAt, and filter by isPublished: true for public view
-    const blogs = await Blog.find({ isPublished: true }).sort({ publishedAt: -1 }); 
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+
+    let query = {};
+    let sortOrder: any = { updatedAt: -1 }; // Default sort for admin (all posts)
+
+    if (status === 'published') {
+      query = { isPublished: true };
+      sortOrder = { publishedAt: -1 }; // Sort by publishedAt for public view
+    }
+
+    const blogs = await Blog.find(query).sort(sortOrder);
     return NextResponse.json(blogs);
   } catch (error) {
     console.error('Error fetching blogs:', error);
