@@ -1,5 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Public files
+# This file is used to ignore files that should not be committed to the repository.
+# It is recommended to keep this file in the root of your repository.
+
+/public 
+
+
+
 # dependencies
 /node_modules
 /.pnp
