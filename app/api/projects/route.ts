@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
+import { getProjects } from '@/lib/projects';
 import dbConnect from '@/lib/mongodb';
-import Project from '@/models/Project'; // Adjusted import
+import Project from '@/models/Project';
 
 // GET /api/projects - Fetches all projects
 export async function GET(request: Request) {
   try {
-    await dbConnect();
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    let query = {};
-    if (status === 'published') {
-      query = { isPublished: true };
-    }
-    const projects = await Project.find(query);
+    const status = searchParams.get('status') || undefined;
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+    const featured = searchParams.has('featured');
+
+    const projects = await getProjects({ status, limit, featured });
     return NextResponse.json(projects);
   } catch (error) {
     console.error('Error fetching projects:', error); // Server-side log

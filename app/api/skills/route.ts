@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Skill, { ISkill } from '@/models/Skill';
+import { getSkills } from '@/lib/skills';
 
 // Remove the dummy data store
 // let skills = [
@@ -10,12 +11,12 @@ import Skill, { ISkill } from '@/models/Skill';
 
 export async function GET(request: Request) {
   try {
-    await dbConnect();
-    const skills = await Skill.find({});
+    const skills = await getSkills();
     return NextResponse.json(skills);
   } catch (error) {
     console.error('Error fetching skills:', error);
-    return NextResponse.json({ message: 'Error fetching skills', error }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ message: 'Error fetching skills', error: errorMessage }, { status: 500 });
   }
 }
 

@@ -20,6 +20,7 @@ export interface IProject extends Document {
   startDate?: Date;
   endDate?: Date; // Can be undefined if the project is ongoing
   isPublished: boolean; // To control visibility
+  isFeatured?: boolean; // To mark project as featured
 }
 
 const ProjectSchema: Schema = new Schema({
@@ -80,6 +81,10 @@ const ProjectSchema: Schema = new Schema({
   isPublished: {
     type: Boolean,
     default: false, // Draft by default
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false,
   },
   // You could add a field for related skills, e.g., by referencing Skill model IDs
   // relatedSkills: [{ type: Schema.Types.ObjectId, ref: 'Skill' }]
